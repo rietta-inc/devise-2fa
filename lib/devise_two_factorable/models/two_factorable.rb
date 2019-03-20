@@ -91,7 +91,12 @@ module Devise::Models
 
     def validate_otp_time_token(token)
       return false if token.blank?
-      validate_otp_token_with_drift(token)
+      if validate_otp_token_with_drift(token)
+        self.last_successful_otp_at = Time.now
+        self.save!
+        return true
+      end
+      false
     end
     alias valid_otp_time_token? validate_otp_time_token
 
@@ -114,6 +119,12 @@ module Devise::Models
 
     def validate_otp_token_with_drift(token)
       # should be centered around saved drift
+      if self.last_successful_otp_at
+        if (self.last_successful_otp_at - Time.now).abs < self.class.otp_drift_window
+          return false
+        end
+      end
+
       (-self.class.otp_drift_window..self.class.otp_drift_window).any? do |drift|
         time_based_otp.verify(token, Time.now.ago(30 * drift))
       end

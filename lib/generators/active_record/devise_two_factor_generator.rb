@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails/generators/active_record'
 
 module ActiveRecord
@@ -6,7 +8,10 @@ module ActiveRecord
       source_root File.expand_path('../templates', __FILE__)
 
       def copy_devise_migration
-        migration_template 'migration.rb', "db/migrate/devise_two_factor_add_to_#{table_name}.rb"
+        migration_template 'migration.rb',
+                           "db/migrate/devise_two_factor_add_to_#{table_name}.rb"
+        migration_template 'add_last_successful_otp_at.rb',
+                           "db/migrate/devise_two_factor_add_last_successful_otp_at_to_#{table_name}.rb"
       end
 
       def inject_field_types
@@ -26,6 +31,10 @@ module ActiveRecord
   validates :otp_auth_secret, symmetric_encryption: true
   validates :otp_recovery_secret, symmetric_encryption: true
 RUBY
+      end
+
+      def model_exists?
+        File.exist? "app/models/#{table_name}.rb"
       end
     end
   end
