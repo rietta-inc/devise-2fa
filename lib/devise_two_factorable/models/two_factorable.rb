@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rotp'
 
 module Devise::Models
@@ -8,9 +10,9 @@ module Devise::Models
       before_validation :generate_otp_auth_secret, on: :create
       before_validation :generate_otp_persistence_seed, on: :create
       if defined?(ActiveRecord) && self < ActiveRecord::Base
-        scope :with_valid_otp_challenge, ->{ where(User.arel_table[:otp_challenge_expires].gt(Time.current)) }
+        scope :with_valid_otp_challenge, -> { where(User.arel_table[:otp_challenge_expires].gt(Time.current)) }
       else # Mongoid
-        scope :with_valid_otp_challenge, ->{ where(:otp_challenge_expires.gt => Time.current) }
+        scope :with_valid_otp_challenge, -> { where(:otp_challenge_expires.gt => Time.current) }
       end
     end
 
@@ -95,14 +97,16 @@ module Devise::Models
 
     def validate_otp_time_token(token)
       return false if token.blank?
-      validate_otp_token_with_drift(token)
+      return false unless validate_otp_token_with_drift(token)
+
+      self.last_successful_otp_at = Time.now
+      save!
     end
     alias valid_otp_time_token? validate_otp_time_token
 
     def next_otp_recovery_tokens(number = self.class.otp_recovery_tokens)
-      (otp_recovery_counter..otp_recovery_counter + number).inject({}) do |h, index|
+      (otp_recovery_counter..otp_recovery_counter + number).each_with_object({}) do |index, h|
         h[index] = recovery_otp.at(index)
-        h
       end
     end
 
@@ -120,7 +124,8 @@ module Devise::Models
       time_based_otp.verify(
         token,
         drift_behind: drift.minutes.seconds,
-        at: Time.now + drift.minutes.seconds / 2
+        at: Time.now + drift.minutes.seconds / 2,
+        after: last_successful_otp_at
       )
     end
 
