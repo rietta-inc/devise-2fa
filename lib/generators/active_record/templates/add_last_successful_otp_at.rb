@@ -1,7 +1,7 @@
-class DeviseTwoFactorAddLastSuccessfulOtpAtTo<%= table_name.camelize %> < ActiveRecord::Migration[5.0]
+class DeviseTwoFactorAddLastSuccessfulOtpAtTo<%= table_name.camelize %> < <%= @migration_class_name %>
   def self.up
     change_table :<%= table_name %> do |t|
-      t.datetime :last_successful_otp_at
+      t.datetime :otp_last_success
     end
   end
 
